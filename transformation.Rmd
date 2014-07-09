@@ -192,9 +192,9 @@ show(g)
 ```
 
 #### What's going on?
-What we are seeing is the difference between a probable image transformation (flipping upside down) and an improbable one, only switching the first two pixels.  After a probable transformation, the image retains the same patterns as any other image.  After an improbable transformation the image turns to static.
+What we are seeing is the difference between a probable image transformation, flipping upside down, and an improbable one, only switching the first two pixels.  After a probable transformation, the image retains the same patterns as any other image.  After an improbable transformation the image turns to static.
 
-Notice that images in nature never look like static.  This is because they rotate, translate, scale, and otherwise distort in ways that are far from random.  Static images only emerge after random transformations, and so they frequently contain patterns that rarely occur in nature.
+Notice that images in nature seldom look like static.  This is because they rotate, translate, scale, and otherwise distort in ways that are far from random.  Static images only emerge after random transformations, and so they contain patterns that rarely occur in nature.
 
 #### How can we quantify the effect?
 TODO
