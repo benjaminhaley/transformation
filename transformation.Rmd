@@ -1,0 +1,211 @@
+---
+title: "Learning the rules of image transformation"
+author: "Benjamin Haley"
+date: "July 7, 2014"
+output: html_document
+---
+
+[rpub][rpubs] - [code][github] - [blog][blogger]
+
+__________________________________________________________________
+
+How a computer can learn the rules of rotation, reflection, scaling, translation, and many other transformations that images can undergo.
+
+__________________________________________________________________
+
+#### We recognize images despite many transformations
+As your eyes move across this sentence the image hitting your retina is constantly shifting.  Yet you hardly notice.  One reason you do not, is because your brain recognizes letters regardless of their position in your field of view.
+
+Consider the following image.  Look first at the blue dot and then at the red.  Notice that the number '2' between them is recognizable regardless of your focus.  This, despite the fact that the image is falling on a completely different set of neurons.
+
+![][blue-2-red]
+
+Images go through many such transformations. They reverse, rotate, scale, translate and distort in many ways we have no words for.  That's not to mention all the changes in lighting that can occur.  Through all of this they remain recognizable.
+
+![][types-of-transformations]
+
+The number of transformations can happen to an image is infinite, but that does not mean that all transformations are possible or probable.  Many never occur in the real world and our brain is cannot recognize the images after these improbable transformations.
+
+![][impossible-transformation]
+
+__________________________________________________________________
+
+#### But computers are bad at learning the rules of image transformation
+The rules of transformation are important for anyone who wants to teach a computer how to process images.  [The algorithms that are best at image recognition][convolution] learn a representation of the world that considers many shifts of focus, [translations][translations], like that shown in the first example.
+
+However, these algorithms do not *learn* that images can be translated, the way they learn to recognize digits.  Instead the laws of translation are programmed into the algorithm by the researcher.
+
+Would it be possible to have them learn about translation without telling them explicitly?  What about the myriad other transformations that are possible?
+
+__________________________________________________________________
+
+#### The types of probable transformations can be learned
+I propose they can, and submit the following experiment as evidence.  In it I show that we can learn that flipping an image upside down is a valid transformation, but randomly re-arranging the pixels is not.  I conjecture that this proceedure can be generalized to learn many other types of possible transformations for image and non-image data.
+
+__________________________________________________________________
+
+```{r global_options, include=FALSE}
+# Global knitr configuration options
+# This will supress warnings and make graphs a nice size.
+
+library(knitr)
+opts_chunk$set(fig.width=3, 
+               fig.height=2, 
+               echo=FALSE,         # Toggle this to show the code
+               warning=FALSE, 
+               message=FALSE,
+               cache=F
+               )
+```
+
+```{r}
+# Set up
+# Load in a few libraries, define some helpful functions, load a small sample of [mnist] data, and convert it to a useful format.
+
+# Libraries
+library(ggplot2)
+library(reshape2)
+library(plyr)
+library(dplyr)
+library(RCurl)
+
+# Functions to map pixel number to x, y coordinates (and back)
+y <- function(pixel) -floor(pixel / 28) + 28
+x <- function(pixel) pixel %% 28
+pixel <- function(x, y) (28 - y) * 28 + x
+
+# Compress all columns to one
+concatenate_columns <- function(df) do.call("paste", df)
+
+# Convert data 
+# from one image per row to one pixel per row
+elongate <- function(d=data){
+  d <- d[,order(names(d))] %>%
+    mutate(pattern = concatenate_columns(d),
+           id = 1:nrow(d))
+  d <- melt(d, 
+            id.vars=c('id', 'pattern'), 
+            variable.name='pixel', 
+            value.name='intensity')
+  d <- d %>%
+    mutate(pixel = as.numeric(as.character(pixel)))
+  d
+}
+
+# A minimalist theme for plotting
+theme_nothing = function(...) theme(
+  line=element_blank(),
+  text=element_blank(),
+  title=element_blank(),
+  rect=element_blank(),
+  legend.position="none")
+
+# Show images
+# With appropriate x, y positions and one image
+# per facet
+show <- function(g, modifications=theme_nothing()) {
+  ggplot(g, aes(x(pixel), y(pixel), alpha=intensity)) + 
+    geom_tile() + 
+    facet_wrap(~ pattern + id, ncol=20) + 
+    theme_nothing() +
+    modifications
+}
+
+# Data
+# A sample from mnist, of handwritten digits.  Originally from Yann
+# LeCunn's site [1], but actually sampled from Joseph Redmon's handy
+# csv version [2].
+# 
+# [1]: http://yann.lecun.com/exdb/mnist/
+# [2]: http://www.pjreddie.com/projects/mnist-in-csv/
+
+data <- "https://dl.dropboxusercontent.com/u/1131693/mnist_tiny.csv"
+data <- read.csv(data)
+
+# Convert to binary
+# Originally pixel intensity is 0-256, make it on or off
+data <- data.frame(data > 100) + 0
+names(data) <- c(0:783)
+```
+
+__________________________________________________________________
+
+#### What data is this?
+[Mnist][mnist] is a handy collection of handwritten data.  It looks like so.
+
+```{r}
+g <- elongate(head(data, 3))
+show(g)
+```
+
+__________________________________________________________________
+
+#### Where to focus
+We will begin by focusing on a small region of data.  Specifically the three vertical pixels highlighted in the data below.
+
+```{r}
+# Highlight areas of interest
+g <- g %>%
+  mutate(of_interest = as.numeric(
+    x(pixel) == 13 & 
+    y(pixel) %in% c(13:15)))
+show(g, geom_tile(aes(fill=of_interest)))
+```
+
+__________________________________________________________________
+
+#### What patterns are common?
+If we look at these three pixels across many images, we see that certain patterns are more common than others.  We see many examples where the top two pixels are filled in and the bottom is blank, but only one example where the top and bottom pixels are filled in and the middle is blank.
+
+Clearly the patterns observed are not random ones.
+
+```{r}    
+g <- elongate(data[,pixel(x=13, y=13:15)])
+show(g)
+```
+
+#### Upside down, the patterns are unchanged.
+Next we can try flipping the pixels upside down.  Like so:
+
+![][flipping_pixels_upside down]
+i.e.
+   1       3
+   2   ->  2
+   3       1
+
+Notice that the patterns have roughly the same frequency.  Flipping the image still results in a reasonable image.
+
+```{r}
+g <- data[,pixel(x=13, y=13:15)]
+new_order <- c(3, 2, 1)
+names(g) <- names(g)[new_order]
+g <- elongate(g)
+show(g)
+   
+# What if we re-arrange them in an unlikely way?
+# i.e.
+#   1       1
+#   2   ->  3
+#   3       2
+g <- data[,pixel(x=13, y=13:15)]
+new_order <- c(1, 3, 2)
+names(g) <- names(g)[new_order]
+head(g, 2)
+g <- elongate(g)
+ggplot(g, aes(x(pixel), y(pixel), alpha=intensity)) + 
+    geom_tile() + 
+    facet_wrap(~ pattern + id, ncol=20) + 
+    theme_nothing()
+```
+
+[blue-2-red]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-07%2017.01.09.png
+[convolution]: https://en.wikipedia.org/wiki/Convolutional_neural_network
+[translations]: https://en.wikipedia.org/wiki/Translation_(geometry)
+[types-of-transformations]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-07%2020.36.55.png
+[youtube-cat]: http://googleblog.blogspot.com/2012/06/using-large-scale-brain-simulations-for.html
+[impossible-transformation]: http://www.foodonourtable.com/wp-content/uploads/2011/01/iStock_000012084047XSmall.jpg
+[rpubs]: http://rpubs.com/benjaminhaley/transformation
+[github]: TODO
+[blogger]: TODO
+[mnist]: http://yann.lecun.com/exdb/mnist/
+[flipping_pixels_upside down]: http://www.foodonourtable.com/wp-content/uploads/2011/01/iStock_000012084047XSmall.jpg
