@@ -55,7 +55,7 @@ opts_chunk$set(fig.width=3,
                echo=TRUE,         # Toggle this to show the code
                warning=FALSE, 
                message=FALSE,
-               cache=TRUE
+               results='asis'
                )
 ```
 
@@ -69,6 +69,8 @@ library(reshape2)
 library(plyr)
 library(dplyr)
 library(RCurl)
+library(xtable)
+library(gtools)
 
 # Functions to map pixel number to x, y coordinates (and back)
 y <- function(pixel) -floor(pixel / 28) + 28
@@ -111,6 +113,35 @@ show <- function(g, modifications=theme_nothing()) {
     theme_nothing() +
     modifications
 }
+
+# A version of table which determines frequency
+# and outputs a data.frame
+tabulate_frequencies <- function(x) {
+  data.frame(value=x) %>% 
+    group_by(value) %>% 
+    summarize(count = length(value),
+              frequency = count/length(x))
+}
+
+# Determine the loglikeliood of the patterns
+# in y given the patterns in x
+loglikelihood <- function(x, y){
+  x <- tabulate_frequencies(x)
+  y <- tabulate_frequencies(y)
+
+  d <- merge(x %>% select(-count), 
+        y %>% select(-frequency))
+
+  loglikelihood = summarize(d, loglikelihood=sum(count*log(frequency)))
+  loglikelihood
+}
+
+# Determine how likely each result is after setting
+# the most likely result to 1.
+relative_likelihood <- function(loglikelihood) {
+  exp(loglikelihood - max(loglikelihood))
+}
+
 
 # Data
 # A sample from mnist, of handwritten digits.  Originally from Yann
@@ -160,7 +191,7 @@ If we look at these three pixels across many images, we see that certain pattern
 
 Clearly the patterns observed are not random ones.
 
-```{r}    
+```{r}
 g <- elongate(data[,pixel(x=13, y=13:15)])
 show(g)
 ```
@@ -185,7 +216,7 @@ If we make an improbable change, switching the first two pixels, while keeping t
 
 ```{r}
 g <- data[,pixel(x=13, y=13:15)]
-new_order <- c(1, 3, 2)
+new_order <- c(2, 1, 3)
 names(g) <- names(g)[new_order]
 g <- elongate(g)
 show(g)
@@ -197,8 +228,30 @@ What we are seeing is the difference between a probable image transformation, fl
 Notice that images in nature seldom look like static.  This is because they rotate, translate, scale, and otherwise distort in ways that are far from random.  Static images only emerge after random transformations, and so they contain patterns that rarely occur in nature.
 
 #### How can we quantify the effect?
-TODO
+TODO describe this
 
+```{r}
+g <- data[,pixel(x=13, y=13:15)]
+orders <- permutations(3, 3, 1:3)
+g <- ldply(1:nrow(orders), function(possibility) {
+  order <- orders[possibility,]
+  data.frame(  
+    loglikelihood = loglikelihood(concatenate_columns(g), 
+                                  concatenate_columns(g[,order])),
+    order = paste(order, collapse=' ')
+  )
+})
+g <- g %>%
+  mutate(relative_likelihoods = relative_likelihood(loglikelihood),
+         result = round(100 * relative_likelihoods, 1)) %>%
+  select(order, result)
+
+print(xtable(g), 
+      type="html",
+      include.rownames = FALSE,
+      html.table.attributes = getOption("xtable.html.table.attributes", "border=0"),
+      witdth=)
+```
 
 [blue-2-red]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-07%2017.01.09.png
 [convolution]: https://en.wikipedia.org/wiki/Convolutional_neural_network
