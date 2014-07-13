@@ -152,8 +152,8 @@ relative_likelihood <- function(loglikelihood) {
 # [2]: http://www.pjreddie.com/projects/mnist-in-csv/
 
 # TODO derive tiny from medium and use it for most of this project
-#data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_tiny.csv"
-data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_medium.csv"
+data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_tiny.csv"
+# data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_medium.csv"
 data <- read.csv(textConnection(getURL(data)))
 
 # Convert to binary
@@ -257,91 +257,6 @@ print(xtable(g),
 
 
 ```{r}
-
-# TODO move to top
-library(reshape2)
-
-g <- data
-# TODO stop sampling just some of them
-values = c('0 0', '0 1', '1 0', '1 1')
-default <- data.frame(value=values, 
-                      count=0, 
-                      frequency=0.0002)
-pixels <- sample(names(g))
-r <- ldply(pixels, function(a) {
-  ldply(pixels, function(b) {
-    a. <- as.numeric(a)
-    b. <- as.numeric(b)
-    if(a. <= b.) return(NULL)
-    
-    f <- tabulate_frequencies(concatenate_columns(g[,c(a,b)]))
-    f <- rbind(f, default %>% filter(!(value %in% f$value)))
-
-    data.frame(a=a., b=b., f)
-  })
-})
-
-# log transform
-r <- r %.%
-  mutate(
-    frequency = frequency - 0.0001,
-    frequency = log(frequency / (1 - frequency)))
-
-# cast
-r <- dcast(r, a + b ~ value, value.var=c('frequency'))
-r <- r %>%
-  mutate(x=x(a), xend=x(b), y=y(a), yend=y(b))
-
-
-
-# TODO logistic xform
-# TODO play with # of clusters
-nclusters <- 100
-k <- kmeans(r[,values], nclusters, iter.max=20)
-r$cluster <- k$cluster
-
-# Add cluster counts
-counts <- r %>% ungroup() %>% group_by(cluster) %>% summarize(n=length(cluster))
-r <- merge(r[,!names(r) %in% 'n'], counts, all.x=T)
-
-# Add likelihood
-centers <- data.frame(
-  loglikelihood = rowSums(k$centers),
-  cluster=1:nclusters
-)
-r <- merge(r[,!names(r) %in% 'loglikelihood'], centers, all.x=T)
-
-ggplot(r) +
-  geom_segment(aes(x=x, xend=xend, y=y, yend=yend,
-               alpha=1/(n*((xend - x)^2 + (yend - y)^2)^0.5))) +
-  facet_wrap(~ loglikelihood + cluster) +
-  scale_alpha_continuous(range=c(0.01, .5)) +
-  theme_nothing()
-
-# These images (cool.png, cool2.png, cool3.png) are exceedingly cool and intriguing
-# but they are not showing the general rules of transformations, instead something
-# specific to these images.
-
-# I think I need to start from a humbler place.  What does it like like when we 
-# compare the 3 pixels taken before to other sets of 3 in a highly localize region
-
-# Once we understand this point we can move forward.
-
-
-
-r$cluster <- kmeans(r[,values], 100)$cluster
-
-# Add cluster counts
-counts <- r %>% group_by(cluster) %>% summarize(n=length(cluster))
-r <- merge(r[,!names(r) %in% 'n'], counts, all.x=T)
-
-ggplot(r, aes()) +
-  geom_segment(aes(x=x, xend=xend, y=y, yend=yend,
-               width=1/(((xend - x)^2 + (yend - y)^2)^0.5)),
-               alpha=0.01) + 
-  facet_wrap(~ n + cluster) +
-  theme_nothing()
-
 
 ```
 
