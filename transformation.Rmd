@@ -384,7 +384,7 @@ We understand that images can transform, but computers, generally, are blind to 
 
 However, it is important to realize that such discovery is possible.  And this does show practical promise for several reasons:
 
-1. Not all transformations fit the commonly known transformations.  Even this simple inquiry uncovered many likely image transformations which are difficult to describe formally.  Likely images were stretched and bent in ways that are quite familiar to the eye, but well beyond the geometric transformations we learn in highschool.  We can only explicitly teach computers those things that we can describe, for the rest, computers, like us, must learn on their own.
+1. Not all transformations are easy to describe.  Even this simple inquiry uncovered many likely image transformations which are difficult to describe formally.  Likely images were stretched and bent in ways that are quite familiar to the eye, but difficult to describe using the geometric transformations we learn in highschool.  We can only explicitly teach computers those things that we can describe, for the rest, computers, like us, must learn on their own.
 2. Not all datasets are so well understood.  I have focused on image and image transformation, a subject both intuitive and well studied.  But there are many datasets for which we have much less intuition and understanding.  Think for instance of weather systems for which we have only recently developed sophisticated datasets and modeling tools or genetic sequences which are still 95% mysterious to us.  In these less-familiar domains we might find that an algorithm which discovers the rules of transformation can quickly outpace the experts who attempt the same.
 3. At some point new rules must be discovered.  While we may be able to impart our computers with all the benefit of our expertise in the same way that we impart it upon children, at some point, they must reach the boundaries of what is known.  If computers are to join us in the exploration of brave new domains of thought, they must become more adept thinkers.  Discovering the rules of transformation as I have illustrated here is part of what makes us intelligent.  It is a necessary step to producing truly intelligent machines.
 
@@ -401,5 +401,3 @@ However, it is important to realize that such discovery is possible.  And this d
 [flipping_pixels_upside_down]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2023.03.39.png
 [switching_first_two_pixels]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2023.11.37.png
 [multinomial]: https://en.wikipedia.org/wiki/Multinomial_distribution
-
-TODO: Add github readme file  
