@@ -6,16 +6,15 @@ output:
 
 ### Learning the rules of image transformation
 *Benjamin Haley 2014*  
-[rpub][rpubs] - [code][github] - [blog][blogger]
+[text][blogger] - [code][github] - [both][rpubs]
 
 **How a computer can learn the rules of rotation, reflection, scaling, translation, and many other transformations that images can undergo.**
 
 __________________________________________________________________
 
+#### We recognize images despite transformations.
 
-#### We recognize images despite transformations
-
-As your eyes move across this sentence the image hitting your retina is constantly shifting.  Yet you hardly notice.  One reason you do not, is because your brain recognizes letters regardless of their position in your field of view.
+As your eyes move across this sentence the image hitting your retina is constantly changing.  Yet you hardly notice.  One reason you do not, is because your brain recognizes letters regardless of their position in your field of view.
 
 Consider the following image.  Look first at the blue dot and then at the red.  Notice that the number '2' between them is recognizable regardless of your focus.  This, despite the fact that the image is falling on a completely different set of neurons.
 
@@ -25,13 +24,13 @@ Images go through many such transformations. They reverse, rotate, scale, transl
 
 ![][types-of-transformations]
 
-The number of transformations can happen to an image is infinite, but that does not mean that all transformations are possible or probable.  Many never occur in the real world and our brain is cannot recognize the images after these improbable transformations.
+The number of transformations that can happen to an image is infinite, but that does not mean that all transformations are possible or probable.  Many never occur in the real world and our brain cannot recognize the images after these improbable transformations.
 
 ![][impossible-transformation]
 
 __________________________________________________________________
 
-#### But computers are bad at learning the rules of image transformation
+#### But computers are bad at learning the rules of image transformation.
 The rules of transformation are important for anyone who wants to teach a computer how to process images.  [The algorithms that are best at image recognition][convolution] learn a representation of the world that considers many shifts of focus, [translations][translations], as illustrated in the first example.
 
 However, these algorithms do not *learn* that images can be translated, the way they learn to recognize digits.  Instead the laws of translation are programmed into the algorithm by the researcher.
@@ -40,8 +39,10 @@ Would it be possible to have them learn about translation without telling them e
 
 __________________________________________________________________
 
-#### I propose that these transformations can be learned
-I propose they can, and submit the following experiment as evidence.  In it I show that we can learn that flipping an image upside down is a valid transformation, but randomly re-arranging the pixels is not.  I conjecture that this proceedure can be generalized to learn many other types of possible transformations for image and non-image data.
+#### I propose that these transformations can be learned.
+I propose they can, and submit the following experiment as evidence.  In it, I show that we can learn that flipping an image upside down is a valid transformation, but randomly rearranging the pixels is not.  I conjecture that this procedure can be generalized to learn many other types of possible transformations for image and non-image data.
+
+*note: I can't claim that this work is unique.  I just hope that it is interesting.*
 
 __________________________________________________________________
 
@@ -50,8 +51,8 @@ __________________________________________________________________
 # This will supress warnings and make graphs a nice size.
 
 library(knitr)
-opts_chunk$set(fig.width=3, 
-               fig.height=2, 
+opts_chunk$set(fig.width=4, 
+               fig.height=3, 
                echo=TRUE,         # Toggle this to show the code
                warning=FALSE, 
                message=FALSE,
@@ -60,8 +61,11 @@ opts_chunk$set(fig.width=3,
 ```
 
 ```{r}
-# Set up
-# Load in a few libraries, define some helpful functions, load a small sample of [mnist] data, and convert it to a useful format.
+# Setup
+# 1. Load in a few libraries.
+# 2. Define some helpful functions.
+# 3. Load a sample of MNIST data.
+# 4. Convert it to a useful format.
 
 # Libraries
 library(ggplot2)
@@ -103,19 +107,30 @@ theme_nothing = function(...) theme(
   rect=element_blank(),
   legend.position="none")
 
-# Show images
-# With appropriate x, y positions and one image
-# per facet
-show <- function(g, modifications=theme_nothing()) {
+# Show images of handwritten digits
+show <- function(g) {
   ggplot(g, aes(x(pixel), y(pixel), alpha=intensity)) + 
     geom_tile() + 
     facet_wrap(~ pattern + id, ncol=20) + 
-    theme_nothing() +
-    modifications
+    geom_tile() + 
+    scale_alpha_continuous(range=c(0.0, 1.0)) +
+    theme_nothing()
+}
+# Highlight a special region in red
+show_of_interest <- function(g) {
+  g <- g %>%
+    mutate(of_interest = as.numeric(of_interest))
+  ggplot(g, aes(x(pixel), y(pixel), alpha=intensity + 0.5*of_interest)) + 
+    geom_tile() + 
+    facet_wrap(~ pattern + id, ncol=20) + 
+    geom_tile(aes(fill=of_interest)) + 
+    scale_alpha_continuous(range=c(0.0, 1.0)) +
+    scale_fill_continuous(low="black", high="red") + 
+    theme_nothing()
 }
 
-# A version of table which determines frequency
-# and outputs a data.frame
+# Return a dataframe with the frequency and count
+# of each unique value of x
 tabulate_frequencies <- function(x) {
   data.frame(value=x) %>% 
     group_by(value) %>% 
@@ -123,142 +138,255 @@ tabulate_frequencies <- function(x) {
               frequency = count/length(x))
 }
 
-# Determine the loglikeliood of the patterns
-# in y given the patterns in x
+# Determine the log likeliood of the patterns
+# in y given the patterns in x using the multinomial distribution [1].
+# 
+# [1]: https://en.wikipedia.org/wiki/Multinomial_distribution
 loglikelihood <- function(x, y){
   x <- tabulate_frequencies(x)
   y <- tabulate_frequencies(y)
+  n <- sum(y$count)
 
   d <- merge(x %>% select(-count), 
-        y %>% select(-frequency))
-
-  loglikelihood = summarize(d, loglikelihood=sum(count*log(frequency)))
-  loglikelihood
+             y %>% select(-frequency))
+  
+  d <- d %>%
+    mutate(loglikelihood= log(frequency) * count - lfactorial(count)) %>%
+    summarize(loglikelihood = sum(loglikelihood))
+  
+  as.numeric(d) + lfactorial(n)
 }
 
-# Determine how likely each result is after setting
-# the most likely result to 1.
-relative_likelihood <- function(loglikelihood) {
-  exp(loglikelihood - max(loglikelihood))
+# Switch pixels around
+reorder <- function(data, new_order) {
+  names(data) <- names(data)[new_order]
+  data <- data[,as.character(sort(as.numeric(names(data))))]
+  data
 }
-
 
 # Data
-# A sample from mnist, of handwritten digits.  Originally from Yann
+# A sample from MNIST, of handwritten digits.  Originally from Yann
 # LeCunn's site [1], but actually sampled from Joseph Redmon's handy
 # csv version [2].
 # 
-# [1]: http://yann.lecun.com/exdb/mnist/
-# [2]: http://www.pjreddie.com/projects/mnist-in-csv/
-
-# TODO derive tiny from medium and use it for most of this project
-data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_tiny.csv"
-# data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_medium.csv"
+# [1]: http://yann.lecun.com/exdb/MNIST/
+# [2]: http://www.pjreddie.com/projects/MNIST-in-csv/
+data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_medium.csv"
 data <- read.csv(textConnection(getURL(data)))
 
 # Convert to binary
 # Originally pixel intensity is 0-256, make it on or off
 data <- data.frame(data > 100) + 0
 names(data) <- c(0:783)
+
+# Make some smaller datasets
+# for use when we only need a little data
+tiny <- head(data, 3)
+small <- head(data, 100)
+medium <- head(data, 1000)
 ```
 
 __________________________________________________________________
 
 #### What data are we using?
-To illustrate my point, I will use [Mnist][mnist] data, a handy collection of handwritten digits.
+I will use [MNIST][MNIST] data, a handy collection of handwritten digits.
 
 ```{r}
-g <- elongate(head(data, 3))
-show(g)
+show(elongate(tiny))
 ```
 
 __________________________________________________________________
 
-#### Where to focus
-We will focus on a small region of data.  Specifically, the three vertical pixels highlighted in the data below.
+#### Where to focus?
+We will focus on a small region of data.  Specifically, the three vertical pixels highlighted in each digit below.
 
 ```{r}
-# Highlight areas of interest
-g <- g %>%
-  mutate(of_interest = as.numeric(
-    x(pixel) == 13 & 
-    y(pixel) %in% c(13:15)))
-show(g, geom_tile(aes(fill=of_interest)))
+focus <- sort(pixel(x=13, y=13:15))
+show_of_interest(elongate(tiny) %>%
+                   mutate(of_interest = pixel %in% focus))
 ```
 
 __________________________________________________________________
 
 #### What patterns are common?
-If we look at these three pixels across many images, we see that certain patterns are more common than others.  For example, there are many cases where one of the three pixels is blank but only one case where this is the middle pixel.
+Next we look at the pixel patterns across many images.
+
+```{r}
+show(elongate(small[,focus]))
+```
+
+We see that certain patterns are more common than others.  For example, there are many cases where one of the three pixels is blank but only one case where this is the middle pixel.
 
 Clearly the patterns observed are not random ones.
 
-```{r}
-g <- elongate(data[,pixel(x=13, y=13:15)])
-show(g)
-```
+__________________________________________________________________
 
 #### Upside down, the patterns have similar frequencies.
-If we flip the pixels upside down, the patterns have roughly the same frequency as before.
+Then we flip the pixels upside down and look at the patterns.
 
 ![][flipping_pixels_upside_down]
 
 ```{r}
-g <- data[,pixel(x=13, y=13:15)]
-new_order <- c(3, 2, 1)
-names(g) <- names(g)[new_order]
-g <- elongate(g)
-show(g)
+show(elongate(reorder(small[,focus], c(3, 2, 1))))
 ```
 
+Notice that the patterns have roughly the same frequency as before.  Flipping upside down does not substantially change the image.
+
+__________________________________________________________________
+
 #### But switching the first two pixels produces very different frequencies.
-If we make an improbable change, switching the first two pixels, while keeping the third in place, the patterns have a very different frequency than the prior cases.  For example the pattern where two filled in pixels surround a blank pixel is common, where it was only observed once in the previous examples.
+Finally, we make an improbable change, switching the first two pixels, while keeping the third in place.
 
 ![][switching_first_two_pixels]
 
 ```{r}
-g <- data[,pixel(x=13, y=13:15)]
-new_order <- c(2, 1, 3)
-names(g) <- names(g)[new_order]
-g <- elongate(g)
-show(g)
+show(elongate(reorder(small[,focus], c(1, 3, 2))))
 ```
 
-#### What's going on?
-What we are seeing is the difference between a probable image transformation, flipping upside down, and an improbable one, only switching the first two pixels.  After a probable transformation, the image retains the same patterns as any other image.  After an improbable transformation the image turns to static.
+The patterns have a very different frequency than the prior cases.  For example, the pattern where two filled in pixels surround a blank pixel is common, where it was only observed once in the previous two  examples.
 
-Notice that images in nature seldom look like static.  This is because they rotate, translate, scale, and otherwise distort in ways that are far from random.  Static images only emerge after random transformations, and so they contain patterns that rarely occur in nature.
+__________________________________________________________________
+
+#### What's going on?
+We are seeing the difference between a probable image transformation, flipping upside down, and an improbable one, only switching the first two pixels.  Objects in the real world flip upside down regularly.  But, unless we are stretching taffy or entertaining contortionists, it is unusual to see the middle of something switch places with its top.
+
+After a probable transformation, the image retains the same patterns as any other image.  After an improbable transformation the image contains improbable patterns.
+
+__________________________________________________________________
 
 #### How can we quantify the effect?
-TODO describe this
+We can estimate the likelihood of each reordering given the frequencies observed in the original order.  For example if a pattern, off-on-on, occurred 20% of the time in the original image then it will most likely occur 20% of the time in a valid rearrangement of the image.  Concretely we use the  [multinomial distribution][multinomial]:
+
+$\frac{n!}{x_1!\cdots x_k!} p_1^{x_1} \cdots p_k^{x_k}$
+
+Where $n$ is the total number of samples, $x_i$ is the number of samples that have some particular value, $p_i$ is the frequency of some particular value, and $k$ is the number of unique values.
 
 ```{r}
-g <- data[,pixel(x=13, y=13:15)]
 orders <- permutations(3, 3, 1:3)
-g <- ldply(1:nrow(orders), function(possibility) {
-  order <- orders[possibility,]
-  data.frame(  
-    loglikelihood = loglikelihood(concatenate_columns(g), 
-                                  concatenate_columns(g[,order])),
+g <- ldply(1:nrow(orders), function(o) {
+  order <- orders[o,]
+  data.frame( 
+    loglikelihood = loglikelihood(concatenate_columns(medium[,focus]), 
+                                  concatenate_columns(reorder(medium[,focus], order))),
     order = paste(order, collapse=' ')
   )
 })
-g <- g %>%
-  mutate(relative_likelihoods = relative_likelihood(loglikelihood),
-         result = round(100 * relative_likelihoods, 1)) %>%
-  select(order, result)
 
-print(xtable(g), 
+print(xtable(g %>% select(order, loglikelihood), align=c('center', 'right', 'right')), 
       type="html",
       include.rownames = FALSE,
-      html.table.attributes = getOption("xtable.html.table.attributes", "border=0"),
-      witdth=)
+      html.table.attributes = getOption("xtable.html.table.attributes", "border=0"))
 ```
 
+We see quantitative evidence that reinforces our visual proof and our intuition.  The reverse order, "3 2 1", is more similar to the original order, "1 2 3", than any other possible transformation.
+
+__________________________________________________________________
+
+#### Let us consider a wider frame of reference.
+Up until now, we have considered a very limited set of transformations, each possible order of three pixels.  Now lets focus on a wider region.  We will continue to use the three pixels as before, but we will compare them to a wider field, the 12 surrounding pixels, highlighted below.
 
 ```{r}
+# Define a zone of interest
+# A range of pixels where we will consider every set of three points
+zone = expand.grid(
+  x=12:14,
+  y=12:16) %>%
+  mutate(pixel=pixel(x, y))
+zone <- sort(zone$pixel)
 
+# Show the region of interest
+g <- elongate(tiny) %>%
+  mutate(of_interest = 
+           pixel %in% zone +
+           pixel %in% focus)
+show_of_interest(g)
 ```
+
+__________________________________________________________________
+
+#### What transformations are likely?
+Now let us consider each set of three pixels from this wider field in each of their possible orders. As before, we will use the multinomial distribution to determine how similar each set and order is to our original three pixels.
+
+```{r fig.width=5, fig.height=5}
+# Define all sets of three points within the zone
+# in all possible orders
+points = expand.grid(
+  p1 = zone,
+  p2 = zone,
+  p3 = zone
+) %>% 
+  filter(p1 != p2, p2 != p3, p1 != p3)  
+
+# For each order of each set of three points, 
+# determine the likelihood of the order, compared to the baseline
+points <- ldply(1:nrow(points), function(row) {
+  loglikelihood = with(points[row,],
+                       loglikelihood(concatenate_columns(data[,focus]),
+                                     concatenate_columns(data[,c(p1, p2, p3)])))
+  cbind(points[row,], 
+        loglikelihood=loglikelihood, 
+        id=paste(sort(as.numeric(points[row,])), collapse=' '))
+})
+
+# Rank the likelihood results
+points <- points %>%
+  mutate(rank=rank(-loglikelihood))
+
+# Show the highest ranked results
+ggplot(points %>% filter(rank <= 70)) +
+  geom_segment(aes(x=11, y=17, xend=15, yend=17), size=0.1) +
+  geom_tile(aes(x(p1), y(p1)), fill='black') +
+  geom_tile(aes(x(p2), y(p2)), fill='black') +
+  geom_tile(aes(x(p3), y(p3)), fill='black') +
+  geom_point(aes(x(p2), y(p2)), color='red', alpha=0.9) +
+  facet_wrap(~ rank, nrow=7) +
+  theme_nothing()
+```
+
+Here we see the sets of pixels most like our original three.  The most likely set (our original three itself) occupies the top left corner and the subsequent images show other sets in order of descending likelihood.  For clarity, a red dot has been put on the 'middle' pixel, where 'middle' is defined as the middle pixel in the original image.
+
+First, note that the middle pixel always stays in the middle through all of the likely transformations.  This is because likely transformations tend to maintain order (except that they may flip entirely as illustrated before).
+
+Next, notice that we see examples of each of the likely transformations that we already know to exist.  
+- Rotations are common, vertical and horizontal patterns appearing nearly equally often.  
+- Reversals are similarly common, though they cannot be seen as both ends appear the same color, grey.  - Translations are ubiquitous as can be clearly seen by how the pixels shift within the region on focus from left to right, top to bottom.  
+- Distortions are common, very often we see not-quite straight lines, ones just slighly twisted.
+- Scaling occurs, though it is rare, only occasionally do we see pixels more than one unit apart.  I haven't determined why scaling is rare in this image.  Obviously in the real world scaling is very common as you can see if you press your face against the screen.
+
+Through all of these transformations, the basic pattern holds, the middle pixel in the original image remains the middle through each likely transformation.  We see no examples of taffy stretching contortionism.
+
+#### What transformations are unlikely?
+Next lets look at those transformations ranked least likely.  This will assure you that I have not hoodwinked you by divining patterns in the results that would be seen regardless of their order.
+
+```{r fig.width=5, fig.height=5}
+points <- points %>%
+  mutate(reverse_rank = max(rank) + 1 - rank)
+
+# Show the lowest ranked results
+ggplot(points %>% filter(reverse_rank <= 70)) +
+  geom_segment(aes(x=11, y=17, xend=15, yend=17), size=0.1) +
+  geom_tile(aes(x(p1), y(p1)), fill='black') +
+  geom_tile(aes(x(p2), y(p2)), fill='black') +
+  geom_tile(aes(x(p3), y(p3)), fill='black') +
+  geom_point(aes(x(p2), y(p2)), color='red', alpha=0.9) +
+  facet_wrap(~ reverse_rank, nrow=7) +
+  theme_nothing()
+```
+
+Here we see the misfits, the unlikely patterns.  Like before, except the top left is occupied by the least likely transformation.
+
+The thing to notice here is the breakdown of our basic pattern.  What was the middle, marked in red, is no longer in the middle.  Instead we see the two tails abutting one another and the red middle cast assunder.  It stands to reason that these transformations are as unlikely as taffy and contortionists.
+
+__________________________________________________________________
+
+#### Conclusion
+We understand that images can transform, but computers, generally, are blind to this fact.  Here, I have given a simple visual demonstration of how those rules of transformation can be discovered by a computer using real world datasets with little external expertise.  Certainly, huge strides in computational efficiency would be necessary to make this a practical approach to image recognition problems, and it may well be that we can describe the rules of image transformation so well that a computer need never discover them on its own.
+
+However, it is important to realize that such discovery is possible.  And this does show practical promise for several reasons:
+
+1. Not all transformations fit the commonly known transformations.  Even this simple inquiry uncovered many likely image transformations which are difficult to describe formally.  Likely images were stretched and bent in ways that are quite familiar to the eye, but well beyond the geometric transformations we learn in highschool.  We can only explicitly teach computers those things that we can describe, for the rest, computers, like us, must learn on their own.
+2. Not all datasets are so well understood.  I have focused on image and image transformation, a subject both intuitive and well studied.  But there are many datasets for which we have much less intuition and understanding.  Think for instance of weather systems for which we have only recently developed sophisticated datasets and modeling tools or genetic sequences which are still 95% mysterious to us.  In these less-familiar domains we might find that an algorithm which discovers the rules of transformation can quickly outpace the experts who attempt the same.
+3. At some point new rules must be discovered.  While we may be able to impart our computers with all the benefit of our expertise in the same way that we impart it upon children, at some point, they must reach the boundaries of what is known.  If computers are to join us in the exploration of brave new domains of thought, they must become more adept thinkers.  Discovering the rules of transformation as I have illustrated here is part of what makes us intelligent.  It is a necessary step to producing truly intelligent machines.
 
 [blue-2-red]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-07%2017.01.09.png
 [convolution]: https://en.wikipedia.org/wiki/Convolutional_neural_network
@@ -266,12 +394,12 @@ print(xtable(g),
 [types-of-transformations]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-07%2020.36.55.png
 [youtube-cat]: http://googleblog.blogspot.com/2012/06/using-large-scale-brain-simulations-for.html
 [impossible-transformation]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2022.46.27.png
-[rpubs]: http://rpubs.com/benjaminhaley/imagetransformation
+[rpubs]: http://rpubs.com/benjaminhaley/transformation
 [github]: https://github.com/benjaminhaley/transformation
-[blogger]: TODO
-[mnist]: http://yann.lecun.com/exdb/mnist/
+[blogger]: http://benjaminhaley.blogspot.com/2014/07/learning-the-rules-of-image-transformation.html
+[MNIST]: http://yann.lecun.com/exdb/MNIST/
 [flipping_pixels_upside_down]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2023.03.39.png
 [switching_first_two_pixels]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2023.11.37.png
+[multinomial]: https://en.wikipedia.org/wiki/Multinomial_distribution
 
-TODO: Add github readme file
-TODO: spell check
+TODO: Add github readme file  
