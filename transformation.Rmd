@@ -14,7 +14,7 @@ __________________________________________________________________
 
 #### We recognize images despite transformations.
 
-As your eyes move across this sentence the image hitting your retina is constantly changing.  Yet you hardly notice.  One reason you do not, is because your brain recognizes letters regardless of their position in your field of view.
+As your eyes move across this sentence, the image hitting your retina is constantly changing.  Yet you hardly notice.  One reason you do not is because your brain recognizes letters regardless of their position in your field of view.
 
 Consider the following image.  Look first at the blue dot and then at the red.  Notice that the number '2' between them is recognizable regardless of your focus.  This, despite the fact that the image is falling on a completely different set of neurons.
 
@@ -31,11 +31,11 @@ The number of transformations that can happen to an image is infinite, but that 
 __________________________________________________________________
 
 #### But computers are bad at learning the rules of image transformation.
-The rules of transformation are important for anyone who wants to teach a computer how to process images.  [The algorithms that are best at image recognition][convolution] learn a representation of the world that considers many shifts of focus, [translations][translations], as illustrated in the first example.
+The rules of transformation are important for anyone who wants to teach a computer how to process images.  [The algorithms that are best at image recognition][convolution] learn a representation of the world that considers many shifts of focus.  These are called [translations][translations] as illustrated above.
 
 However, these algorithms do not *learn* that images can be translated, the way they learn to recognize digits.  Instead the laws of translation are programmed into the algorithm by the researcher.
 
-Would it be possible to have them learn about translation without telling them explicitly?  What about the myriad other transformations that are possible?
+Would it be possible to have computers learn about translation without telling them explicitly?  What about the myriad other transformations that are possible?
 
 __________________________________________________________________
 
@@ -255,7 +255,7 @@ After a probable transformation, the image retains the same patterns as any othe
 __________________________________________________________________
 
 #### Can we quantify the effect?
-We can estimate the likelihood of each reordering given the frequencies observed in the original order.  For example if a pattern, off-on-on, occurred 20% of the time in the original image then it will most likely occur 20% of the time in a valid rearrangement of the image.  Concretely we use the  [multinomial distribution][multinomial]:
+We can estimate the likelihood of each reordering given the frequencies observed in the original order.  For example, if a pattern, off-on-on, occurred 20% of the time in the original image then it will most likely occur 20% of the time in a valid rearrangement of the image.  Concretely we use the  [multinomial distribution][multinomial]:
 
 $\frac{n!}{x_1!\cdots x_k!} p_1^{x_1} \cdots p_k^{x_k}$
 
@@ -283,7 +283,7 @@ We see quantitative evidence that reinforces our visual proof and our intuition.
 __________________________________________________________________
 
 #### Let us consider a wider frame of reference.
-Up until now, we have considered a very limited set of transformations, each possible order of three pixels.  Now lets focus on a wider region.  We will continue to use the three pixels as before, but we will compare them to a wider field, the 12 surrounding pixels, highlighted below.
+Up until now, we have considered a very limited set of transformations, each possible order of three pixels.  Now let's focus on a wider region.  We will continue to use the three pixels as before, but we will compare them to a wider field, the 12 surrounding pixels, highlighted below.
 
 ```{r}
 # Define a zone of interest
@@ -350,7 +350,7 @@ First, note that the middle pixel always stays in the middle through all of the 
 Next, notice that we see examples of each of the likely transformations that we already know to exist.  
 
 - Rotations are common, vertical and horizontal patterns appearing nearly equally often.  
-- Reversals are similarly common, though they cannot be seen as the ends are indistinguishiable.  
+- Reversals are similarly common, though they cannot be seen as the ends are indistinguishable.  
 - Translations are ubiquitous as can be clearly seen by how the pixels shift within the region on   
   focus from left to right, top to bottom.
 - Distortions are common, very often we see not-quite straight lines, ones bent or stretched.
@@ -359,6 +359,8 @@ Next, notice that we see examples of each of the likely transformations that we 
   common as you can see if you press your face against the screen.
 
 Through all of these transformations, the basic pattern holds, the middle pixel in the original image remains the middle through each likely transformation.  We see no examples of taffy stretching contortionism.
+
+__________________________________________________________________
 
 #### What transformations are unlikely?
 Next lets look at those transformations ranked least likely.  This will assure you that I have not hoodwinked you by divining patterns in the results that would be seen regardless of their order.
@@ -391,7 +393,7 @@ Certainly, huge strides in computational efficiency would be necessary to make t
 
 However, it is important to realize that such discovery is possible.  And this does show practical promise for several reasons:
 
-1. Not all transformations are easy to describe.  Even this simple inquiry uncovered many likely image transformations which are difficult to describe formally.  Likely images were stretched and bent in ways that are quite familiar to the eye, but difficult to describe using the geometric transformations we learned in highschool.  We can only explicitly teach computers those things that we can describe, for the rest, computers, like us, must learn on their own.
+1. Not all transformations are easy to describe.  Even this simple inquiry uncovered many likely image transformations which are difficult to describe formally.  Likely images were stretched and bent in ways that are quite familiar to the eye, but difficult to describe using the geometric transformations we learned in high school.  We can only explicitly teach computers those things that we can describe, for the rest, computers, like us, must learn on their own.
 2. Not all datasets are so well understood.  I have focused on image and image transformation, a subject both intuitive and well studied.  But there are many datasets for which we have much less intuition and understanding.  Think for instance of weather systems for which we have only recently developed sophisticated datasets and modeling tools or genetic sequences which are still 95% mysterious to us.  In these less-familiar domains we might find that an algorithm which discovers the rules of transformation can quickly outpace the experts who attempt the same.
 3. At some point new rules must be discovered.  While we may be able to impart our computers with all the benefit of our expertise in the same way that we impart it upon children, at some point, they must reach the boundaries of what is known.  If computers are to join us in the exploration of brave new domains of thought, they must become more adept thinkers.  Discovering the rules of transformation as I have illustrated here is part of what makes us intelligent.  It is a necessary step to producing truly intelligent machines.
 
