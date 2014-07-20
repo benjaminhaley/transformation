@@ -40,7 +40,7 @@ Would it be possible to have them learn about translation without telling them e
 __________________________________________________________________
 
 #### I propose that these transformations can be learned.
-I propose they can, and submit the following experiment as evidence.  In it, I show that we can learn that flipping an image upside down is a valid transformation, but randomly rearranging the pixels is not.  I conjecture that this procedure can be generalized to learn many other types of possible transformations for image and non-image data.
+I propose they can, and submit the following experiment as evidence.  First, I show that we can learn that flipping an image upside down is a valid transformation, but randomly rearranging the pixels is not.  Then I show that examples each of the aforementioned transformations can be discovered.  Finally, I wax poetic about the future of this kind of work.
 
 *note: I can't claim that this work is unique.  I just hope that it is interesting.*
 
@@ -254,7 +254,7 @@ After a probable transformation, the image retains the same patterns as any othe
 
 __________________________________________________________________
 
-#### How can we quantify the effect?
+#### Can we quantify the effect?
 We can estimate the likelihood of each reordering given the frequencies observed in the original order.  For example if a pattern, off-on-on, occurred 20% of the time in the original image then it will most likely occur 20% of the time in a valid rearrangement of the image.  Concretely we use the  [multinomial distribution][multinomial]:
 
 $\frac{n!}{x_1!\cdots x_k!} p_1^{x_1} \cdots p_k^{x_k}$
@@ -348,10 +348,15 @@ Here we see the sets of pixels most like our original three.  The most likely se
 First, note that the middle pixel always stays in the middle through all of the likely transformations.  This is because likely transformations tend to maintain order (except that they may flip entirely as illustrated before).
 
 Next, notice that we see examples of each of the likely transformations that we already know to exist.  
+
 - Rotations are common, vertical and horizontal patterns appearing nearly equally often.  
-- Reversals are similarly common, though they cannot be seen as both ends appear the same color, grey.  - Translations are ubiquitous as can be clearly seen by how the pixels shift within the region on focus from left to right, top to bottom.  
-- Distortions are common, very often we see not-quite straight lines, ones just slighly twisted.
-- Scaling occurs, though it is rare, only occasionally do we see pixels more than one unit apart.  I haven't determined why scaling is rare in this image.  Obviously in the real world scaling is very common as you can see if you press your face against the screen.
+- Reversals are similarly common, though they cannot be seen as the ends are indistinguishiable.  
+- Translations are ubiquitous as can be clearly seen by how the pixels shift within the region on   
+  focus from left to right, top to bottom.
+- Distortions are common, very often we see not-quite straight lines, ones bent or stretched.
+- Scaling occurs, though it is rare, only occasionally do we see pixels more than one unit apart.
+  I haven't determined why scaling is rare in this image.  Obviously in the real world scaling is very  
+  common as you can see if you press your face against the screen.
 
 Through all of these transformations, the basic pattern holds, the middle pixel in the original image remains the middle through each likely transformation.  We see no examples of taffy stretching contortionism.
 
@@ -375,16 +380,18 @@ ggplot(points %>% filter(reverse_rank <= 70)) +
 
 Here we see the misfits, the unlikely patterns.  Like before, except the top left is occupied by the least likely transformation.
 
-The thing to notice here is the breakdown of our basic pattern.  What was the middle, marked in red, is no longer in the middle.  Instead we see the two tails abutting one another and the red middle cast assunder.  It stands to reason that these transformations are as unlikely as taffy and contortionists.
+The thing to notice here is the breakdown of our basic pattern.  What was the middle, marked in red, is no longer in the middle.  Instead we see the two tails abutting one another and the red middle cast aside.  It stands to reason that these transformations are as unlikely as taffy and contortionists.
 
 __________________________________________________________________
 
 #### Conclusion
-We understand that images can transform, but computers, generally, are blind to this fact.  Here, I have given a simple visual demonstration of how those rules of transformation can be discovered by a computer using real world datasets with little external expertise.  Certainly, huge strides in computational efficiency would be necessary to make this a practical approach to image recognition problems, and it may well be that we can describe the rules of image transformation so well that a computer need never discover them on its own.
+We understand that images can transform, but computers, generally, are blind to this fact.  Here, I have given a simple visual demonstration of how those rules of transformation can be discovered by a computer using real world datasets with little external expertise.
+
+Certainly, huge strides in computational efficiency would be necessary to make this a practical approach to image recognition problems, and it may well be that we can describe the rules of image transformation so well that a computer need never discover them on its own.
 
 However, it is important to realize that such discovery is possible.  And this does show practical promise for several reasons:
 
-1. Not all transformations are easy to describe.  Even this simple inquiry uncovered many likely image transformations which are difficult to describe formally.  Likely images were stretched and bent in ways that are quite familiar to the eye, but difficult to describe using the geometric transformations we learn in highschool.  We can only explicitly teach computers those things that we can describe, for the rest, computers, like us, must learn on their own.
+1. Not all transformations are easy to describe.  Even this simple inquiry uncovered many likely image transformations which are difficult to describe formally.  Likely images were stretched and bent in ways that are quite familiar to the eye, but difficult to describe using the geometric transformations we learned in highschool.  We can only explicitly teach computers those things that we can describe, for the rest, computers, like us, must learn on their own.
 2. Not all datasets are so well understood.  I have focused on image and image transformation, a subject both intuitive and well studied.  But there are many datasets for which we have much less intuition and understanding.  Think for instance of weather systems for which we have only recently developed sophisticated datasets and modeling tools or genetic sequences which are still 95% mysterious to us.  In these less-familiar domains we might find that an algorithm which discovers the rules of transformation can quickly outpace the experts who attempt the same.
 3. At some point new rules must be discovered.  While we may be able to impart our computers with all the benefit of our expertise in the same way that we impart it upon children, at some point, they must reach the boundaries of what is known.  If computers are to join us in the exploration of brave new domains of thought, they must become more adept thinkers.  Discovering the rules of transformation as I have illustrated here is part of what makes us intelligent.  It is a necessary step to producing truly intelligent machines.
 
