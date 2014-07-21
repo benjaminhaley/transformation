@@ -53,7 +53,7 @@ __________________________________________________________________
 library(knitr)
 opts_chunk$set(fig.width=4, 
                fig.height=3, 
-               echo=TRUE,         # Toggle this to show the code
+               echo=FALSE,         # Toggle this to show the code
                warning=FALSE, 
                message=FALSE,
                results='asis'
@@ -169,8 +169,8 @@ reorder <- function(data, new_order) {
 # LeCunn's site [1], but actually sampled from Joseph Redmon's handy
 # csv version [2].
 # 
-# [1]: http://yann.lecun.com/exdb/MNIST/
-# [2]: http://www.pjreddie.com/projects/MNIST-in-csv/
+# [1]: http://yann.lecun.com/exdb/mnist/
+# [2]: http://www.pjreddie.com/projects/mnist-in-csv/
 data <- "https://raw.githubusercontent.com/benjaminhaley/transformation/master/mnist_medium.csv"
 data <- read.csv(textConnection(getURL(data)))
 
@@ -405,8 +405,8 @@ However, it is important to realize that such discovery is possible.  And this d
 [impossible-transformation]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2022.46.27.png
 [rpubs]: http://rpubs.com/benjaminhaley/transformation
 [github]: https://github.com/benjaminhaley/transformation
-[blogger]: http://benjaminhaley.blogspot.com/2014/07/learning-the-rules-of-image-transformation.html
-[MNIST]: http://yann.lecun.com/exdb/MNIST/
+[blogger]: http://benjaminhaley.blogspot.com/2014/07/transformation.html
+[MNIST]: http://yann.lecun.com/exdb/mnist/
 [flipping_pixels_upside_down]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2023.03.39.png
 [switching_first_two_pixels]: http://dl.dropbox.com/u/1131693/bloodrop/Screenshot%202014-07-08%2023.11.37.png
 [multinomial]: https://en.wikipedia.org/wiki/Multinomial_distribution
